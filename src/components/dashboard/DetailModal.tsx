@@ -36,12 +36,12 @@ export function DetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[1500px] gap-0 overflow-hidden p-0">
-        <DialogHeader className="flex-row items-center gap-6 border-b border-border px-6 py-4">
-          <Logo className="hidden shrink-0 scale-[0.55] origin-left sm:block" />
-          <DialogTitle className="text-xl font-semibold">
+      <DialogContent className="card-gradient max-w-[1500px] gap-0 overflow-hidden rounded-3xl p-0">
+        <DialogHeader className="red-gradient flex-row items-center gap-4 px-6 py-4">
+          <Logo className="hidden h-11 w-11 shrink-0 sm:block" />
+          <DialogTitle className="text-xl font-semibold text-primary-foreground">
             {painel.titulo}{" "}
-            <span className="ml-2 font-semibold">
+            <span className="ml-2 text-sm font-medium opacity-90">
               {hora}-{dia} | {painel.lote}
             </span>
           </DialogTitle>

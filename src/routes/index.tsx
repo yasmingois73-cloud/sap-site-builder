@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,6 +16,7 @@ import {
   dataHora as dataHoraPadrao,
   evolucao,
   importacoes,
+  nf,
   repescagem,
   tiposPlanilha,
 } from "@/lib/dashboard-data";
@@ -39,30 +40,69 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+const kpis = [
+  { label: "Total de leituras", valor: evolucao.totalLeituras + repescagem.totalLeituras },
+  { label: "Concluídas", valor: evolucao.concluidas + repescagem.concluidas, tone: "green" },
+  { label: "Em aberto", valor: evolucao.emAberto + repescagem.emAberto, tone: "red" },
+] as const;
+
 function Index() {
   const [tipo, setTipo] = useState<string>("");
   const [importacao, setImportacao] = useState<string>(dataHoraPadrao);
   const [aberto, setAberto] = useState<"evolucao" | "repescagem" | null>(null);
 
   return (
-    <main className="page-gradient min-h-screen px-6 py-10 lg:px-16">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-              Acompanhamento Diário Leitura
-            </h1>
-            <p className="mt-2 text-lg text-muted-foreground">
-              Bem vindo(a) ao Acompanhamento Diário de Evolução da leitura e Respescagem.
-            </p>
-          </div>
-          <Logo className="shrink-0" />
-        </header>
+    <main className="page-gradient min-h-screen">
+      <div className="grid-lines">
+        <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10 lg:py-14">
+          <header className="card-gradient panel-shadow flex flex-wrap items-center gap-5 rounded-3xl border border-border p-5 lg:p-7">
+            <Logo />
+            <div className="min-w-[220px] flex-1">
+              <p className="text-[11px] font-semibold tracking-[0.24em] text-brand-sky uppercase">
+                Ceneged · energia positiva
+              </p>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight lg:text-4xl">
+                Acompanhamento Diário Leitura
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Evolução da leitura e repescagem — dados importados do SAP.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/30 px-4 py-3 text-right">
+              <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                Última importação
+              </p>
+              <p className="text-sm font-semibold">{importacao}</p>
+            </div>
+          </header>
 
-        <div className="mt-6 space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
+          <section className="mt-5 grid gap-4 sm:grid-cols-3">
+            {kpis.map((k) => (
+              <div
+                key={k.label}
+                className="card-gradient rounded-2xl border border-border px-5 py-4"
+              >
+                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                  {k.label}
+                </p>
+                <p
+                  className={
+                    "tone" in k && k.tone === "red"
+                      ? "text-2xl font-bold text-brand-red"
+                      : "tone" in k && k.tone === "green"
+                        ? "text-2xl font-bold text-brand-green"
+                        : "text-2xl font-bold text-foreground"
+                  }
+                >
+                  {nf.format(k.valor)}
+                </p>
+              </div>
+            ))}
+          </section>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-background/25 p-4">
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger className="w-[190px] bg-card">
+              <SelectTrigger className="w-[190px] bg-card/70">
                 <SelectValue placeholder="Tipo de planilha" />
               </SelectTrigger>
               <SelectContent>
@@ -73,14 +113,9 @@ function Index() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="secondary" className="bg-brand-green text-primary-foreground hover:bg-brand-green/90">
-              <Plus /> Importar
-            </Button>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-4">
             <Select value={importacao} onValueChange={setImportacao}>
-              <SelectTrigger className="w-[350px] bg-card">
+              <SelectTrigger className="w-[240px] bg-card/70">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -91,13 +126,22 @@ function Index() {
                 ))}
               </SelectContent>
             </Select>
-            <Button className="ring-2 ring-primary/40 ring-offset-2">Buscar</Button>
-          </div>
-        </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <SummaryCard painel={evolucao} onOpen={() => setAberto("evolucao")} />
-          <SummaryCard painel={repescagem} onOpen={() => setAberto("repescagem")} />
+            <Button className="rounded-full">
+              <Search /> Buscar
+            </Button>
+            <Button
+              variant="secondary"
+              className="rounded-full border border-brand-green/40 bg-brand-green/15 text-brand-green hover:bg-brand-green/25"
+            >
+              <Plus /> Importar
+            </Button>
+          </div>
+
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            <SummaryCard painel={evolucao} onOpen={() => setAberto("evolucao")} />
+            <SummaryCard painel={repescagem} onOpen={() => setAberto("repescagem")} />
+          </div>
         </div>
       </div>
 
