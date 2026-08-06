@@ -163,3 +163,11 @@
     color: var(--color-foreground);
   }
 }
+
+@utility page-gradient {
+  background-image: var(--gradient-page);
+}
+
+@utility panel-shadow {
+  box-shadow: var(--shadow-panel);
+}
