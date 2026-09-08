@@ -56,3 +56,16 @@ export function getCodificacaoDiariaPorCodigo() {
     "/codificacao-diaria/codigo/"
   );
 }
+
+export interface CodificacaoPorLeituristaCodigo {
+  leiturista: string;
+  codigo: string;
+  leitura: number;
+  repescagem: number;
+}
+
+export function getCodificacaoDiariaPorLeituristaCodigo() {
+  return apiFetch<CodificacaoPorLeituristaCodigo[]>(
+    "/codificacao-diaria/leiturista-codigo/"
+  );
+}
