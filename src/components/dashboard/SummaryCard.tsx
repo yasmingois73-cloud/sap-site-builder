@@ -48,7 +48,7 @@ export function SummaryCard({
     if (titulo === "Repescagem") {
       return percentual >= 100
         ? "bg-brand-green"
-        : "bg-[#E58A00]";
+        : "bg-bar-mid";
     }
 
     if (percentual <= 50) {
@@ -56,7 +56,7 @@ export function SummaryCard({
     }
 
     if (percentual <= 95) {
-      return "bg-[#E58A00]";
+      return "bg-bar-mid";
     }
 
     return "bg-brand-green";
@@ -149,7 +149,7 @@ export function SummaryCard({
               </p>
 
               {/* BARRA + EM ABERTO */}
-              <div className="mt-2 flex items-center gap-3">
+              <div className="mt-2 flex items-center gap-2">
 
                 {/* BARRA */}
                 <div className="relative h-7 flex-1 overflow-hidden rounded-full bg-muted/50">
@@ -170,7 +170,7 @@ export function SummaryCard({
 
                   {/* PERCENTUAL */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-foreground">
+                    <span className="text-sm font-bold text-foreground">
                       {cat.percentual_concluido}%
                     </span>
                   </div>
