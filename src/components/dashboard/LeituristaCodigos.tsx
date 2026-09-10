@@ -7,7 +7,7 @@ import type { CodigoUsadoPorLeiturista } from "@/api/codificacao-diaria";
 
 interface LeituristaCodigosProps {
   nomeLeiturista: string;
-  codigos: CodigoUsadoPorLeiturista[];
+  codigos?: CodigoUsadoPorLeiturista[];
   tipo: "leitura" | "repescagem";
 }
 
@@ -18,7 +18,7 @@ export function LeituristaCodigos({
 }: LeituristaCodigosProps) {
   // Mostra somente os códigos da aba atual (leitura OU repescagem),
   // nunca os dois misturados.
-  const codigosDaAba = codigos.filter((c) => c[tipo] > 0);
+  const codigosDaAba = (codigos ?? []).filter((c) => c[tipo] > 0);
 
   const foraDoPadrao = codigosDaAba.filter(
     (c) => c.codigo_normal === false || c.codigo_normal === null,
