@@ -1,6 +1,7 @@
 import { nf } from "@/lib/dashboard-data";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
+import { AlertaCodificacao } from "@/components/AlertaCodificacao";
 
 export interface CatData {
   cat: string;
@@ -43,6 +44,11 @@ export function SummaryCard({
   onOpenCodificacao: () => void;
 }) {
   const cats = painel?.cats ?? [];
+
+  // Deriva a aba (leitura/repescagem) a partir do título do painel,
+  // que já vem como "Leitura" ou "Repescagem".
+  const tipoCodificacao: "leitura" | "repescagem" =
+    painel.titulo.toLowerCase() === "repescagem" ? "repescagem" : "leitura";
 
   const getBarColor = (percentual: number, titulo: string) => {
     if (titulo === "Repescagem") {
@@ -115,9 +121,12 @@ export function SummaryCard({
       {/* CODIFICAÇÃO */}
       <div className="mt-3 flex items-center justify-between rounded-2xl border border-border/70 bg-background/30 px-4 py-3">
         <div>
-          <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-            Codificação - Efetividade
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+              Codificação - Efetividade
+            </p>
+            <AlertaCodificacao tipo={tipoCodificacao} />
+          </div>
 
           <p className="text-xl font-bold text-foreground">
           {nf.format(codificacao?.codigos ?? 0)} -{" "}

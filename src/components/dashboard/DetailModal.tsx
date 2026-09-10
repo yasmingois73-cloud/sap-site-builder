@@ -1,3 +1,4 @@
+import { LeituristaCodigos } from "@/components/dashboard/LeituristaCodigos";
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -254,7 +255,7 @@ const ordenarPor = (
                 >
 
                   <td className="px-3 py-2 whitespace-nowrap">
-                    {l.leiturista}
+                    <LeituristaCodigos nomeLeiturista={l.leiturista} />
                   </td>
 
                   <td className="px-2 py-2 text-right">

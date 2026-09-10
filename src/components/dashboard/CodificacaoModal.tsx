@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 import {
   Dialog,
@@ -9,6 +8,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Logo } from "./Logo";
 import { nf } from "@/lib/dashboard-data";
+import { LeituristaCodigos } from "@/components/dashboard/LeituristaCodigos";
+import { useCodificacaoPorLeiturista } from "@/hooks/useCodificacaoPorLeiturista";
 
 import type {
   CodificacaoPorLeiturista,
@@ -48,6 +49,10 @@ export function CodificacaoModal({
 
   // Direção da ordenação
   const [ordemCrescente, setOrdemCrescente] = useState(false);
+
+  // Busca os códigos utilizados por leiturista UMA VEZ SÓ para o modal
+  // inteiro (não em cada linha da tabela) - é isso que resolve a lentidão.
+  const { getDadosDoLeiturista } = useCodificacaoPorLeiturista();
 
   const [hora, dia] = dataHora.split(" ").reverse();
 
@@ -89,10 +94,9 @@ const codigosOrdenados = useMemo(
   [codigos, tipo],
 );
 
-const maiorQuantidade =
-  codigosOrdenados.length > 0
-    ? valorCodigo(codigosOrdenados[0])
-    : 0;
+const maiorQuantidade = codigosOrdenados[0]
+  ? valorCodigo(codigosOrdenados[0])
+  : 0;
 
   /*
    * Filtra e ordena os leituristas.
@@ -270,7 +274,11 @@ const maiorQuantidade =
                     >
 
                       <td className="px-3 py-2 whitespace-nowrap">
-                        {l.leiturista}
+                        <LeituristaCodigos
+                          nomeLeiturista={l.leiturista}
+                          codigos={getDadosDoLeiturista(l.leiturista)?.codigos ?? []}
+                          tipo={tipo}
+                        />
                       </td>
 
                       <td
@@ -482,4 +490,3 @@ const maiorQuantidade =
     </Dialog>
   );
 }
-

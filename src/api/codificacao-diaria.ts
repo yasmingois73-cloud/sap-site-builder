@@ -46,6 +46,8 @@ export function getCodificacaoDiariaPorLeiturista() {
 
 export interface CodificacaoPorCodigo {
   codigo: string;
+  descricao: string | null;
+  codigo_normal: boolean | null;
   leitura: number;
   repescagem: number;
   total: number;
@@ -57,15 +59,21 @@ export function getCodificacaoDiariaPorCodigo() {
   );
 }
 
-export interface CodificacaoPorLeituristaCodigo {
-  leiturista: string;
+export interface CodigoUsadoPorLeiturista {
   codigo: string;
+  descricao: string | null;
+  codigo_normal: boolean | null;
   leitura: number;
   repescagem: number;
 }
 
+export interface CodificacaoPorLeituristaDetalhe {
+  leiturista: string;
+  codigos: CodigoUsadoPorLeiturista[];
+}
+
 export function getCodificacaoDiariaPorLeituristaCodigo() {
-  return apiFetch<CodificacaoPorLeituristaCodigo[]>(
+  return apiFetch<CodificacaoPorLeituristaDetalhe[]>(
     "/codificacao-diaria/leiturista-codigo/"
   );
 }
