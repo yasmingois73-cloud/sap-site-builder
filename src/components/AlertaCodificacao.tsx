@@ -1,17 +1,8 @@
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAlertaCodificacao } from "@/hooks/useAlertaCodificacao";
 
-export function AlertaCodificacao({
-  tipo,
-}: {
-  tipo: "leitura" | "repescagem";
-}) {
-  const { mostrarAlerta, codigosForaDoPadrao, reconhecer } =
-    useAlertaCodificacao(tipo);
+export function AlertaCodificacao({ tipo }: { tipo: "leitura" | "repescagem" }) {
+  const { mostrarAlerta, codigosForaDoPadrao, reconhecer } = useAlertaCodificacao(tipo);
 
   if (!mostrarAlerta) return null;
 
@@ -33,8 +24,7 @@ export function AlertaCodificacao({
 
         {codigosForaDoPadrao.map((c) => (
           <p key={c.codigo}>
-            {c.codigo} — {c.descricao ?? "Sem descrição"} — {c[tipo]}{" "}
-            ocorrências
+            {c.codigo} — {c.descricao ?? "Sem descrição"} — {c[tipo]} ocorrências
           </p>
         ))}
       </PopoverContent>
