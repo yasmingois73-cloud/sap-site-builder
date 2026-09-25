@@ -44,6 +44,13 @@ export function getCodificacaoDiariaPorLeiturista() {
   );
 }
 
+export interface CodificacaoOcorrencia {
+  leiturista: string;
+  repescagem: boolean;
+  instalacao: number | string;
+  identificador: string;
+}
+
 export interface CodificacaoPorCodigo {
   codigo: string;
   descricao: string | null;
@@ -51,6 +58,7 @@ export interface CodificacaoPorCodigo {
   leitura: number;
   repescagem: number;
   total: number;
+  ocorrencias: CodificacaoOcorrencia[];
 }
 
 export function getCodificacaoDiariaPorCodigo() {
@@ -76,4 +84,58 @@ export function getCodificacaoDiariaPorLeituristaCodigo() {
   return apiFetch<CodificacaoPorLeituristaDetalhe[]>(
     "/codificacao-diaria/leiturista-codigo/"
   );
+}
+export interface CodigoReconhecido {
+  tipo: "leitura" | "repescagem";
+  codigo: string;
+  identificador: string;
+}
+
+export function getCodigosReconhecidos() {
+  return apiFetch<CodigoReconhecido[]>("/alertas-codificacao/reconhecidos/");
+}
+
+export async function marcarCodigosReconhecidos(
+  tipo: "leitura" | "repescagem",
+  ocorrencias: {
+    codigo: string;
+    identificador: string;
+  }[],
+  
+) {
+  console.log(">>> ENVIANDO RECONHECIMENTO <<<");
+  console.log(">>> TIPO:", tipo);
+  console.log(">>> OCORRENCIAS:", ocorrencias);
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/alertas-codificacao/reconhecidos/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tipo,
+        ocorrencias,
+      }),
+    },
+  );
+
+  console.log(">>> STATUS POST:", response.status);
+
+  if (!response.ok) {
+    const erro = await response.text();
+
+    console.error(">>> ERRO POST:", erro);
+
+    throw new Error(
+      "Erro ao marcar ocorrências como reconhecidas",
+    );
+  }
+
+  const resultado = await response.json();
+
+  console.log(">>> POST SALVO:", resultado);
+
+  return resultado;
 }
