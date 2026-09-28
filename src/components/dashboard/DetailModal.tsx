@@ -50,6 +50,7 @@ export function DetailModal({
 }) {
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<string>("todas");
+  const [mostrarComAlerta, setMostrarComAlerta] = useState(false); // NOVO FILTRO
 
   const [ordenacao, setOrdenacao] = useState<{
     coluna: "leiturista" | "total_leituras" | "falta" | "feito" | "defeituoso";
@@ -61,10 +62,24 @@ export function DetailModal({
 
   const [hora, dia] = dataHora.split(" ").reverse();
 
-  const leituristasFiltrados = useMemo(
-    () => leituristas.filter((l) => l.leiturista.toLowerCase().includes(busca.toLowerCase())),
-    [leituristas, busca],
-  );
+  const leituristasFiltrados = useMemo(() => {
+    // 1. Filtro de pesquisa de texto
+    let lista = leituristas.filter((l) => l.leiturista.toLowerCase().includes(busca.toLowerCase()));
+
+    // 2. Filtro da checkbox (mostra apenas quem usou códigos anómalos ⚠️)
+    if (mostrarComAlerta) {
+      lista = lista.filter((l) => {
+        // Como o TypeScript não sabe que `l` pode ter `codigos`, fazemos o cast
+        const codigos = (l as any).codigos as CodigoUsadoPorLeiturista[];
+        if (!codigos) return false;
+
+        // Se o leiturista tiver pelo menos 1 código classificado como anormal, aparece na lista
+        return codigos.some((c) => c.codigo_normal === false || c.codigo_normal === null);
+      });
+    }
+
+    return lista;
+  }, [leituristas, busca, mostrarComAlerta]);
 
   const leituristasOrdenados = useMemo(() => {
     return [...leituristasFiltrados].sort((a, b) => {
@@ -130,14 +145,24 @@ export function DetailModal({
         <div className="grid max-h-[78vh] gap-8 overflow-y-auto p-6 lg:grid-cols-3">
           {/* COLUNA 1: LEITURISTAS */}
           <div className="space-y-3">
-            {/* Pesquisa */}
-            <div className="flex flex-wrap gap-3">
+            {/* Pesquisa e Filtros */}
+            <div className="flex flex-col gap-3 mb-2">
               <Input
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Pesquisar Leiturista..."
-                className="w-[240px]"
+                className="w-full max-w-[280px]"
               />
+
+              {/* <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                <input
+                  type="checkbox"
+                  checked={mostrarComAlerta}
+                  onChange={(e) => setMostrarComAlerta(e.target.checked)}
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-border accent-amber-500"
+                />
+                Mostrar apenas com códigos fora do padrão ⚠️
+              </label> */}
             </div>
 
             {/* Tabela */}

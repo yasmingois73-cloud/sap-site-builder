@@ -88,32 +88,40 @@ export function CodificacaoModal({
   /*
    * Filtra e ordena os leituristas.
    */
+  /*
+   * Filtra e ordena os leituristas.
+   */
   const leituristasFiltrados = useMemo(() => {
+    // 1. Filtro de pesquisa por texto
     let resultado = leituristas.filter((l) =>
       l.leiturista.toLowerCase().includes(busca.toLowerCase()),
     );
 
+    // 2. Filtro de códigos fora do padrão ⚠️
     if (mostrarComAlerta) {
       resultado = resultado.filter((l) => {
-        const codigos = getDadosDoLeiturista(l.leiturista)?.codigos ?? [];
-        return codigos.some(
-          (c) => (c.codigo_normal === false || c.codigo_normal === null) && c[tipo] > 0
+        // Vai buscar os códigos específicos deste leiturista
+        const codigosDoLeiturista = getDadosDoLeiturista(l.leiturista)?.codigos ?? [];
+        
+        // Mantém o leiturista apenas se tiver algum código anormal (false ou null)
+        return codigosDoLeiturista.some(
+          (c) => c.codigo_normal === false || c.codigo_normal === null
         );
       });
     }
 
+    // 3. Ordenação das colunas
     if (!ordenacao) {
       return resultado;
     }
 
     return [...resultado].sort((a, b) => {
       const valorA = ordenacao === "leitura" ? a.leitura : a.repescagem;
-
       const valorB = ordenacao === "leitura" ? b.leitura : b.repescagem;
 
       return ordemCrescente ? valorA - valorB : valorB - valorA;
     });
-  }, [leituristas, busca, ordenacao, ordemCrescente, mostrarComAlerta, getDadosDoLeiturista, tipo]);
+  }, [leituristas, busca, ordenacao, ordemCrescente, mostrarComAlerta, getDadosDoLeiturista]);
 
   /*
    * Define qual valor será exibido.
