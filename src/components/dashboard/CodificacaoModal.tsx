@@ -38,6 +38,7 @@ export function CodificacaoModal({
   onOpenChange,
 }: CodificacaoModalProps) {
   const [busca, setBusca] = useState("");
+  const [mostrarComAlerta, setMostrarComAlerta] = useState(false);
 
   // Coluna atualmente utilizada para ordenação
   const [ordenacao, setOrdenacao] = useState<Ordenacao>(null);
@@ -87,9 +88,16 @@ export function CodificacaoModal({
    * Filtra e ordena os leituristas.
    */
   const leituristasFiltrados = useMemo(() => {
-    const resultado = leituristas.filter((l) =>
+    let resultado = leituristas.filter((l) =>
       l.leiturista.toLowerCase().includes(busca.toLowerCase()),
     );
+
+    if (mostrarComAlerta) {
+      resultado = resultado.filter((l) => {
+        const codigos = getDadosDoLeiturista(l.leiturista)?.codigos ?? [];
+        return codigos.some((c) => c.codigo_normal === false || c.codigo_normal === null);
+      });
+    }
 
     if (!ordenacao) {
       return resultado;
@@ -102,7 +110,7 @@ export function CodificacaoModal({
 
       return ordemCrescente ? valorA - valorB : valorB - valorA;
     });
-  }, [leituristas, busca, ordenacao, ordemCrescente]);
+  }, [leituristas, busca, ordenacao, ordemCrescente, mostrarComAlerta, getDadosDoLeiturista]);
 
   /*
    * Define qual valor será exibido.
@@ -188,15 +196,24 @@ export function CodificacaoModal({
           {/* ================================================= */}
 
           <div className="space-y-3">
-            {/* Pesquisa */}
-
-            <div className="flex flex-wrap gap-3">
+            {/* Pesquisa e Filtros */}
+            <div className="flex flex-col gap-3 mb-2">
               <Input
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Pesquisar Leiturista..."
-                className="w-[240px]"
+                className="w-full max-w-[280px]"
               />
+
+              <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                <input
+                  type="checkbox"
+                  checked={mostrarComAlerta}
+                  onChange={(e) => setMostrarComAlerta(e.target.checked)}
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-border accent-amber-500"
+                />
+                Mostrar apenas com códigos fora do padrão ⚠️
+              </label>
             </div>
 
             {/* Tabela */}
