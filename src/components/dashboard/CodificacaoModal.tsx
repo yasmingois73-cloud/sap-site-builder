@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Logo } from "./Logo";
 import { nf } from "@/lib/dashboard-data";
@@ -13,7 +18,6 @@ import type {
 } from "@/api/codificacao-diaria";
 
 type TipoCodificacao = "leitura" | "repescagem";
-
 type Ordenacao = "leitura" | "repescagem" | null;
 
 interface CodificacaoModalProps {
@@ -38,32 +42,22 @@ export function CodificacaoModal({
   onOpenChange,
 }: CodificacaoModalProps) {
   const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] =
+    useState<Ordenacao>(null);
+  const [ordemCrescente, setOrdemCrescente] =
+    useState(false);
 
-  const [mostrarComAlerta, setMostrarComAlerta] = useState(false);
+  const { getDadosDoLeiturista } =
+    useCodificacaoPorLeiturista();
 
-  // Coluna atualmente utilizada para ordenação
-  const [ordenacao, setOrdenacao] = useState<Ordenacao>(null);
+  const [hora, dia] =
+    dataHora.split(" ").reverse();
 
-  // Direção da ordenação
-  const [ordemCrescente, setOrdemCrescente] = useState(false);
+  const titulo =
+    tipo === "leitura"
+      ? "Codificação - Leitura"
+      : "Codificação - Repescagem";
 
-  // Busca os códigos utilizados por leiturista UMA VEZ SÓ para o modal
-  // inteiro (não em cada linha da tabela) - é isso que resolve a lentidão.
-  const { getDadosDoLeiturista } = useCodificacaoPorLeiturista();
-
-  const [hora, dia] = dataHora.split(" ").reverse();
-
-  const titulo = tipo === "leitura" ? "Codificação - Leitura" : "Codificação - Repescagem";
-
-  /*
-   * Altera a ordenação.
-   *
-   * Primeiro clique:
-   * maior -> menor
-   *
-   * Segundo clique:
-   * menor -> maior
-   */
   const ordenarPor = (campo: Ordenacao) => {
     if (!campo) return;
 
@@ -75,74 +69,89 @@ export function CodificacaoModal({
     }
   };
 
-  const valorCodigo = (codigo: CodificacaoPorCodigo) =>
-    tipo === "leitura" ? codigo.leitura : codigo.repescagem;
+  const valorCodigo = (
+    codigo: CodificacaoPorCodigo,
+  ) =>
+    tipo === "leitura"
+      ? codigo.leitura
+      : codigo.repescagem;
 
   const codigosOrdenados = useMemo(
-    () => [...codigos].sort((a, b) => valorCodigo(b) - valorCodigo(a)),
+    () =>
+      [...codigos].sort(
+        (a, b) =>
+          valorCodigo(b) - valorCodigo(a),
+      ),
     [codigos, tipo],
   );
 
-  const maiorQuantidade = codigosOrdenados[0] ? valorCodigo(codigosOrdenados[0]) : 0;
+  const maiorQuantidade = codigosOrdenados[0]
+    ? valorCodigo(codigosOrdenados[0])
+    : 0;
 
-  /*
-   * Filtra e ordena os leituristas.
-   */
-  /*
-   * Filtra e ordena os leituristas.
-   */
   const leituristasFiltrados = useMemo(() => {
-    // 1. Filtro de pesquisa por texto
-    let resultado = leituristas.filter((l) =>
-      l.leiturista.toLowerCase().includes(busca.toLowerCase()),
+    const resultado = leituristas.filter((l) =>
+      l.leiturista
+        .toLowerCase()
+        .includes(busca.toLowerCase()),
     );
 
-    // 2. Filtro de códigos fora do padrão ⚠️
-    if (mostrarComAlerta) {
-      resultado = resultado.filter((l) => {
-        // Vai buscar os códigos específicos deste leiturista
-        const codigosDoLeiturista = getDadosDoLeiturista(l.leiturista)?.codigos ?? [];
-        
-        // Mantém o leiturista apenas se tiver algum código anormal (false ou null)
-        return codigosDoLeiturista.some(
-          (c) => c.codigo_normal === false || c.codigo_normal === null
-        );
-      });
-    }
-
-    // 3. Ordenação das colunas
-    if (!ordenacao) {
-      return resultado;
-    }
+    if (!ordenacao) return resultado;
 
     return [...resultado].sort((a, b) => {
-      const valorA = ordenacao === "leitura" ? a.leitura : a.repescagem;
-      const valorB = ordenacao === "leitura" ? b.leitura : b.repescagem;
+      const valorA =
+        ordenacao === "leitura"
+          ? a.leitura
+          : a.repescagem;
 
-      return ordemCrescente ? valorA - valorB : valorB - valorA;
+      const valorB =
+        ordenacao === "leitura"
+          ? b.leitura
+          : b.repescagem;
+
+      return ordemCrescente
+        ? valorA - valorB
+        : valorB - valorA;
     });
-  }, [leituristas, busca, ordenacao, ordemCrescente, mostrarComAlerta, getDadosDoLeiturista]);
+  }, [
+    leituristas,
+    busca,
+    ordenacao,
+    ordemCrescente,
+  ]);
 
-  /*
-   * Define qual valor será exibido.
-   */
-  const valorCodificacao = (l: CodificacaoPorLeiturista) => {
-    return tipo === "leitura" ? l.leitura : l.repescagem;
-  };
+  const valorCodificacao = (
+    l: CodificacaoPorLeiturista,
+  ) =>
+    tipo === "leitura"
+      ? l.leitura
+      : l.repescagem;
 
-  /*
-   * Indicador visual da ordenação.
-   */
-  const indicadorOrdenacao = (campo: Ordenacao) => {
-    if (ordenacao !== campo) {
-      return "";
-    }
-
+  const indicadorOrdenacao = (
+    campo: Ordenacao,
+  ) => {
+    if (ordenacao !== campo) return "";
     return ordemCrescente ? " ↑" : " ↓";
   };
 
+  const instalacoes = useMemo(() => {
+    return codigos.flatMap((codigo) =>
+      (codigo.ocorrencias ?? []).map(
+        (ocorrencia) => ({
+          codigo: codigo.codigo,
+          instalacao: ocorrencia.instalacao,
+          leiturista: ocorrencia.leiturista,
+          repescagem: ocorrencia.repescagem,
+        }),
+      ),
+    );
+  }, [codigos]);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent
         className="
           card-gradient
@@ -154,8 +163,6 @@ export function CodificacaoModal({
           p-0
         "
       >
-        {/* CABEÇALHO */}
-
         <DialogHeader
           className="
             red-gradient
@@ -166,7 +173,15 @@ export function CodificacaoModal({
             py-3
           "
         >
-          <Logo className="hidden h-10 w-10 shrink-0 sm:block" />
+          <Logo
+            className="
+              hidden
+              h-10
+              w-10
+              shrink-0
+              sm:block
+            "
+          />
 
           <DialogTitle
             className="
@@ -185,12 +200,11 @@ export function CodificacaoModal({
                 opacity-90
               "
             >
-              {hora}-{dia} | Lote: {lote ?? "Sem dados"}
+              {hora}-{dia} | Lote:{" "}
+              {lote ?? "Sem dados"}
             </span>
           </DialogTitle>
         </DialogHeader>
-
-        {/* CONTEÚDO - 3 COLUNAS */}
 
         <div
           className="
@@ -202,39 +216,49 @@ export function CodificacaoModal({
             lg:grid-cols-3
           "
         >
-          {/* ================================================= */}
           {/* COLUNA 1 - CÓDIGOS POR LEITURISTA */}
-          {/* ================================================= */}
 
           <div className="space-y-3">
-            {/* Pesquisa */}
-
             <div className="flex flex-wrap gap-3">
               <Input
                 value={busca}
-                onChange={(e) => setBusca(e.target.value)}
+                onChange={(e) =>
+                  setBusca(e.target.value)
+                }
                 placeholder="Pesquisar Leiturista..."
                 className="w-[240px]"
               />
             </div>
 
-            <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-                <input
-                  type="checkbox"
-                  checked={mostrarComAlerta}
-                  onChange={(e) => setMostrarComAlerta(e.target.checked)}
-                  className="h-3.5 w-3.5 cursor-pointer rounded border-border accent-amber-500"
-                />
-                Mostrar apenas códigos fora do padrão ⚠️
-              </label>
-
-            {/* Tabela */}
-
-            <div className="max-h-[500px] overflow-auto rounded-md border border-border">
+            <div
+              className="
+                max-h-[500px]
+                overflow-auto
+                rounded-md
+                border
+                border-border
+              "
+            >
               <table className="w-full border-collapse text-sm">
-                <thead className="sticky top-0 bg-brand-navy text-primary-foreground">
-                  <tr className="text-left text-[11px] tracking-wide uppercase">
-                    <th className="px-3 py-3 font-semibold">Leiturista</th>
+                <thead
+                  className="
+                    sticky
+                    top-0
+                    bg-brand-navy
+                    text-primary-foreground
+                  "
+                >
+                  <tr
+                    className="
+                      text-left
+                      text-[11px]
+                      tracking-wide
+                      uppercase
+                    "
+                  >
+                    <th className="px-3 py-3 font-semibold">
+                      Leiturista
+                    </th>
 
                     <th
                       className="
@@ -246,9 +270,12 @@ export function CodificacaoModal({
                         font-semibold
                         hover:bg-white/10
                       "
-                      onClick={() => ordenarPor(tipo)}
+                      onClick={() =>
+                        ordenarPor(tipo)
+                      }
                     >
-                      Qtd. de códigos{indicadorOrdenacao(tipo)}
+                      Qtd. de códigos
+                      {indicadorOrdenacao(tipo)}
                     </th>
                   </tr>
                 </thead>
@@ -257,30 +284,52 @@ export function CodificacaoModal({
                   {leituristasFiltrados.map((l) => (
                     <tr
                       key={`${l.leiturista}-${l.cat}`}
-                      className="border-b border-border last:border-0"
+                      className="
+                        border-b
+                        border-border
+                        last:border-0
+                      "
                     >
-                      <td className="px-3 py-2 whitespace-nowrap">
+                      <td
+                        className="
+                          whitespace-nowrap
+                          px-3
+                          py-2
+                        "
+                      >
                         <LeituristaCodigos
-                          nomeLeiturista={l.leiturista}
-                          codigos={getDadosDoLeiturista(l.leiturista)?.codigos ?? []}
+                          nomeLeiturista={
+                            l.leiturista
+                          }
+                          codigos={
+                            getDadosDoLeiturista(
+                              l.leiturista,
+                            )?.codigos ?? []
+                          }
+                          instalacoes={
+                            instalacoes
+                          }
                           tipo={tipo}
                         />
                       </td>
 
                       <td
-                        className={`
+                        className="
                           px-3
                           py-2
                           text-right
-                          ${tipo === "leitura" ? "text-brand-green" : "text-brand-green"}
-                        `}
+                          text-brand-green
+                        "
                       >
-                        {nf.format(valorCodificacao(l))}
+                        {nf.format(
+                          valorCodificacao(l),
+                        )}
                       </td>
                     </tr>
                   ))}
 
-                  {leituristasFiltrados.length === 0 && (
+                  {leituristasFiltrados.length ===
+                    0 && (
                     <tr>
                       <td
                         colSpan={2}
@@ -300,18 +349,27 @@ export function CodificacaoModal({
             </div>
           </div>
 
-          {/* ================================================= */}
           {/* COLUNA 2 - CÓDIGOS POR CAT */}
-          {/* ================================================= */}
 
           <div className="space-y-4">
             <div>
-              <p className="text-lg font-semibold tracking-tight">CATs</p>
+              <p className="text-lg font-semibold tracking-tight">
+                CATs
+              </p>
 
-              <p className="text-xs text-muted-foreground">Desempenho de codificação por CAT</p>
+              <p className="text-xs text-muted-foreground">
+                Desempenho de codificação por CAT
+              </p>
             </div>
 
-            <div className="max-h-[500px] space-y-3 overflow-y-auto pr-1">
+            <div
+              className="
+                max-h-[500px]
+                space-y-3
+                overflow-y-auto
+                pr-1
+              "
+            >
               {cats.map((cat) => {
                 const dados = cat[tipo];
 
@@ -319,50 +377,79 @@ export function CodificacaoModal({
                   <div
                     key={cat.cat}
                     className="
-                        rounded-2xl
-                        border
-                        border-border/70
-                        bg-background/30
-                        p-4
-                      "
+                      rounded-2xl
+                      border
+                      border-border/70
+                      bg-background/30
+                      p-4
+                    "
                   >
                     <div className="grid grid-cols-3 items-center gap-3">
-                      {/* CAT */}
-
                       <div className="text-left">
-                        <p className="text-[10px] tracking-wide text-muted-foreground uppercase">
+                        <p
+                          className="
+                            text-[10px]
+                            tracking-wide
+                            text-muted-foreground
+                            uppercase
+                          "
+                        >
                           CAT
                         </p>
 
-                        <p className="mt-1 text-base font-bold">{cat.cat}</p>
+                        <p className="mt-1 text-base font-bold">
+                          {cat.cat}
+                        </p>
                       </div>
 
-                      {/* QTD. DE CÓDIGOS */}
-
                       <div className="text-center">
-                        <p className="text-[10px] tracking-wide text-muted-foreground uppercase">
+                        <p
+                          className="
+                            text-[10px]
+                            tracking-wide
+                            text-muted-foreground
+                            uppercase
+                          "
+                        >
                           Qtd. de códigos
                         </p>
 
-                        <p className="mt-1 text-lg font-semibold">{nf.format(dados.codigos)}</p>
+                        <p className="mt-1 text-lg font-semibold">
+                          {nf.format(
+                            dados.codigos,
+                          )}
+                        </p>
                       </div>
 
-                      {/* EFETIVIDADE */}
-
                       <div className="text-center">
-                        <p className="text-[10px] tracking-wide text-muted-foreground uppercase">
+                        <p
+                          className="
+                            text-[10px]
+                            tracking-wide
+                            text-muted-foreground
+                            uppercase
+                          "
+                        >
                           Efetividade
                         </p>
 
                         <p
                           className={`
-                              mt-1
-                              text-lg
-                              font-semibold
-                              ${dados.efetividade >= 99.48 ? "text-brand-green" : "text-brand-red"}
-                            `}
+                            mt-1
+                            text-lg
+                            font-semibold
+                            ${
+                              dados.efetividade >=
+                              99.48
+                                ? "text-brand-green"
+                                : "text-brand-red"
+                            }
+                          `}
                         >
-                          {dados.efetividade.toFixed(2)}%
+                          {dados.efetividade.toFixed(
+                            2,
+                          )}
+                          %
                         </p>
                       </div>
                     </div>
@@ -371,57 +458,122 @@ export function CodificacaoModal({
               })}
 
               {cats.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                <div
+                  className="
+                    rounded-2xl
+                    border
+                    border-dashed
+                    border-border
+                    p-6
+                    text-center
+                    text-sm
+                    text-muted-foreground
+                  "
+                >
                   Nenhuma CAT encontrada.
                 </div>
               )}
             </div>
           </div>
 
-          {/* ================================================= */}
           {/* COLUNA 3 - CÓDIGOS */}
-          {/* ================================================= */}
 
           <div className="space-y-4">
             <div>
-              <p className="text-lg font-semibold tracking-tight">Códigos</p>
+              <p className="text-lg font-semibold tracking-tight">
+                Códigos
+              </p>
 
-              <p className="text-xs text-muted-foreground">Distribuição dos códigos</p>
+              <p className="text-xs text-muted-foreground">
+                Distribuição dos códigos
+              </p>
             </div>
 
-            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+            <div
+              className="
+                max-h-[500px]
+                space-y-3
+                overflow-y-auto
+                pr-2
+              "
+            >
               {codigosOrdenados.map((codigo) => {
                 const percentual =
-                  maiorQuantidade > 0 ? (valorCodigo(codigo) / maiorQuantidade) * 100 : 0;
+                  maiorQuantidade > 0
+                    ? (valorCodigo(codigo) /
+                        maiorQuantidade) *
+                      100
+                    : 0;
 
                 return (
                   <div
                     key={codigo.codigo}
-                    className="grid grid-cols-[55px_1fr_55px] items-center gap-3"
+                    className="
+                      grid
+                      grid-cols-[55px_1fr_55px]
+                      items-center
+                      gap-3
+                    "
                   >
-                    {/* Código */}
-                    <span className="text-sm font-semibold text-foreground">{codigo.codigo}</span>
+                    <span
+                      className="
+                        text-sm
+                        font-semibold
+                        text-foreground
+                      "
+                    >
+                      {codigo.codigo}
+                    </span>
 
-                    {/* Barra */}
-                    <div className="h-3 overflow-hidden rounded-full bg-muted/50">
+                    <div
+                      className="
+                        h-3
+                        overflow-hidden
+                        rounded-full
+                        bg-muted/50
+                      "
+                    >
                       <div
-                        className="h-full rounded-full bg-brand-green transition-all"
+                        className="
+                          h-full
+                          rounded-full
+                          bg-brand-green
+                          transition-all
+                        "
                         style={{
                           width: `${percentual}%`,
                         }}
                       />
                     </div>
 
-                    {/* Quantidade */}
-                    <span className="text-right text-sm font-semibold">
-                      {nf.format(valorCodigo(codigo))}
+                    <span
+                      className="
+                        text-right
+                        text-sm
+                        font-semibold
+                      "
+                    >
+                      {nf.format(
+                        valorCodigo(codigo),
+                      )}
                     </span>
                   </div>
                 );
               })}
 
               {codigosOrdenados.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                <div
+                  className="
+                    rounded-2xl
+                    border
+                    border-dashed
+                    border-border
+                    p-6
+                    text-center
+                    text-sm
+                    text-muted-foreground
+                  "
+                >
                   Nenhum código encontrado.
                 </div>
               )}
