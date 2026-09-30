@@ -68,6 +68,7 @@ export function getCodificacaoDiariaPorCodigo() {
 }
 
 export interface CodigoUsadoPorLeiturista {
+  instalacoes: any;
   codigo: string;
   descricao: string | null;
   codigo_normal: boolean | null;

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -42,16 +43,15 @@ export function CodificacaoModal({
   onOpenChange,
 }: CodificacaoModalProps) {
   const [busca, setBusca] = useState("");
-  const [ordenacao, setOrdenacao] =
-    useState<Ordenacao>(null);
-  const [ordemCrescente, setOrdemCrescente] =
-    useState(false);
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>(null);
+  const [ordemCrescente, setOrdemCrescente] = useState(false);
+  
+  // ESTADO PARA O FILTRO DE CÓDIGOS FORA DO PADRÃO (Afeta Coluna 1 e Coluna 3)
+  const [filtroForaPadrao, setFiltroForaPadrao] = useState(false);
 
-  const { getDadosDoLeiturista } =
-    useCodificacaoPorLeiturista();
+  const { getDadosDoLeiturista } = useCodificacaoPorLeiturista();
 
-  const [hora, dia] =
-    dataHora.split(" ").reverse();
+  const [hora, dia] = dataHora.split(" ").reverse();
 
   const titulo =
     tipo === "leitura"
@@ -69,89 +69,74 @@ export function CodificacaoModal({
     }
   };
 
-  const valorCodigo = (
-    codigo: CodificacaoPorCodigo,
-  ) =>
-    tipo === "leitura"
-      ? codigo.leitura
-      : codigo.repescagem;
+  const valorCodigo = (codigo: CodificacaoPorCodigo) =>
+    tipo === "leitura" ? codigo.leitura : codigo.repescagem;
 
-  const codigosOrdenados = useMemo(
-    () =>
-      [...codigos].sort(
-        (a, b) =>
-          valorCodigo(b) - valorCodigo(a),
-      ),
-    [codigos, tipo],
-  );
+  // LÓGICA DE FILTRAGEM E ORDENAÇÃO DOS CÓDIGOS (Coluna 3)
+  const codigosOrdenados = useMemo(() => {
+    let lista = [...codigos];
+    
+    // Aplica o filtro se a checkbox estiver ativada
+    if (filtroForaPadrao) {
+      lista = lista.filter((c: any) => c.codigo_normal === false || c.codigo_normal === null);
+    }
+
+    return lista.sort((a, b) => valorCodigo(b) - valorCodigo(a));
+  }, [codigos, tipo, filtroForaPadrao]);
 
   const maiorQuantidade = codigosOrdenados[0]
     ? valorCodigo(codigosOrdenados[0])
     : 0;
 
+  // LÓGICA DE FILTRAGEM E ORDENAÇÃO DOS LEITURISTAS (Coluna 1)
   const leituristasFiltrados = useMemo(() => {
-    const resultado = leituristas.filter((l) =>
-      l.leiturista
-        .toLowerCase()
-        .includes(busca.toLowerCase()),
+    let resultado = leituristas.filter((l) =>
+      l.leiturista.toLowerCase().includes(busca.toLowerCase()),
     );
+
+    // SE O FILTRO ESTIVER ATIVO: Verifica se o leiturista tem algum código fora do padrão nesta aba
+    if (filtroForaPadrao) {
+      resultado = resultado.filter((l) => {
+        const codigosDoLeiturista = getDadosDoLeiturista(l.leiturista)?.codigos ?? [];
+        
+        // Retorna true se encontrar PELO MENOS UM código usado que seja anormal
+        return codigosDoLeiturista.some(
+          (c) => c[tipo] > 0 && (c.codigo_normal === false || c.codigo_normal === null)
+        );
+      });
+    }
 
     if (!ordenacao) return resultado;
 
     return [...resultado].sort((a, b) => {
-      const valorA =
-        ordenacao === "leitura"
-          ? a.leitura
-          : a.repescagem;
+      const valorA = ordenacao === "leitura" ? a.leitura : a.repescagem;
+      const valorB = ordenacao === "leitura" ? b.leitura : b.repescagem;
 
-      const valorB =
-        ordenacao === "leitura"
-          ? b.leitura
-          : b.repescagem;
-
-      return ordemCrescente
-        ? valorA - valorB
-        : valorB - valorA;
+      return ordemCrescente ? valorA - valorB : valorB - valorA;
     });
-  }, [
-    leituristas,
-    busca,
-    ordenacao,
-    ordemCrescente,
-  ]);
+  }, [leituristas, busca, ordenacao, ordemCrescente, filtroForaPadrao, tipo, getDadosDoLeiturista]);
 
-  const valorCodificacao = (
-    l: CodificacaoPorLeiturista,
-  ) =>
-    tipo === "leitura"
-      ? l.leitura
-      : l.repescagem;
+  const valorCodificacao = (l: CodificacaoPorLeiturista) =>
+    tipo === "leitura" ? l.leitura : l.repescagem;
 
-  const indicadorOrdenacao = (
-    campo: Ordenacao,
-  ) => {
+  const indicadorOrdenacao = (campo: Ordenacao) => {
     if (ordenacao !== campo) return "";
     return ordemCrescente ? " ↑" : " ↓";
   };
 
   const instalacoes = useMemo(() => {
     return codigos.flatMap((codigo) =>
-      (codigo.ocorrencias ?? []).map(
-        (ocorrencia) => ({
-          codigo: codigo.codigo,
-          instalacao: ocorrencia.instalacao,
-          leiturista: ocorrencia.leiturista,
-          repescagem: ocorrencia.repescagem,
-        }),
-      ),
+      (codigo.ocorrencias ?? []).map((ocorrencia) => ({
+        codigo: codigo.codigo,
+        instalacao: ocorrencia.instalacao,
+        leiturista: ocorrencia.leiturista,
+        repescagem: ocorrencia.repescagem,
+      })),
     );
   }, [codigos]);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="
           card-gradient
@@ -200,8 +185,7 @@ export function CodificacaoModal({
                 opacity-90
               "
             >
-              {hora}-{dia} | Lote:{" "}
-              {lote ?? "Sem dados"}
+              {hora}-{dia} | Lote: {lote ?? "Sem dados"}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -217,17 +201,27 @@ export function CodificacaoModal({
           "
         >
           {/* COLUNA 1 - CÓDIGOS POR LEITURISTA */}
-
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-3">
+          <div className="space-y-4">
+            <div className="space-y-3">
               <Input
                 value={busca}
-                onChange={(e) =>
-                  setBusca(e.target.value)
-                }
+                onChange={(e) => setBusca(e.target.value)}
                 placeholder="Pesquisar Leiturista..."
-                className="w-[240px]"
+                className="w-full"
               />
+              
+              {/* CHECKBOX FILTRO FORA DO PADRÃO (Movido para aqui) */}
+              <div className="flex items-center">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={filtroForaPadrao}
+                    onChange={(e) => setFiltroForaPadrao(e.target.checked)}
+                    className="h-3.5 w-3.5 cursor-pointer rounded border-border accent-amber-500"
+                  />
+                  Mostrar apenas códigos fora do padrão ⚠️
+                </label>
+              </div>
             </div>
 
             <div
@@ -270,9 +264,7 @@ export function CodificacaoModal({
                         font-semibold
                         hover:bg-white/10
                       "
-                      onClick={() =>
-                        ordenarPor(tipo)
-                      }
+                      onClick={() => ordenarPor(tipo)}
                     >
                       Qtd. de códigos
                       {indicadorOrdenacao(tipo)}
@@ -298,17 +290,11 @@ export function CodificacaoModal({
                         "
                       >
                         <LeituristaCodigos
-                          nomeLeiturista={
-                            l.leiturista
-                          }
+                          nomeLeiturista={l.leiturista}
                           codigos={
-                            getDadosDoLeiturista(
-                              l.leiturista,
-                            )?.codigos ?? []
+                            getDadosDoLeiturista(l.leiturista)?.codigos ?? []
                           }
-                          instalacoes={
-                            instalacoes
-                          }
+                          instalacoes={instalacoes}
                           tipo={tipo}
                         />
                       </td>
@@ -321,15 +307,12 @@ export function CodificacaoModal({
                           text-brand-green
                         "
                       >
-                        {nf.format(
-                          valorCodificacao(l),
-                        )}
+                        {nf.format(valorCodificacao(l))}
                       </td>
                     </tr>
                   ))}
 
-                  {leituristasFiltrados.length ===
-                    0 && (
+                  {leituristasFiltrados.length === 0 && (
                     <tr>
                       <td
                         colSpan={2}
@@ -340,7 +323,7 @@ export function CodificacaoModal({
                           text-muted-foreground
                         "
                       >
-                        Nenhum leiturista encontrado.
+                        Nenhum leiturista encontrado com estes critérios.
                       </td>
                     </tr>
                   )}
@@ -350,13 +333,9 @@ export function CodificacaoModal({
           </div>
 
           {/* COLUNA 2 - CÓDIGOS POR CAT */}
-
           <div className="space-y-4">
             <div>
-              <p className="text-lg font-semibold tracking-tight">
-                CATs
-              </p>
-
+              <p className="text-lg font-semibold tracking-tight">CATs</p>
               <p className="text-xs text-muted-foreground">
                 Desempenho de codificação por CAT
               </p>
@@ -396,10 +375,7 @@ export function CodificacaoModal({
                         >
                           CAT
                         </p>
-
-                        <p className="mt-1 text-base font-bold">
-                          {cat.cat}
-                        </p>
+                        <p className="mt-1 text-base font-bold">{cat.cat}</p>
                       </div>
 
                       <div className="text-center">
@@ -413,11 +389,8 @@ export function CodificacaoModal({
                         >
                           Qtd. de códigos
                         </p>
-
                         <p className="mt-1 text-lg font-semibold">
-                          {nf.format(
-                            dados.codigos,
-                          )}
+                          {nf.format(dados.codigos)}
                         </p>
                       </div>
 
@@ -432,24 +405,19 @@ export function CodificacaoModal({
                         >
                           Efetividade
                         </p>
-
                         <p
                           className={`
                             mt-1
                             text-lg
                             font-semibold
                             ${
-                              dados.efetividade >=
-                              99.48
+                              dados.efetividade >= 99.48
                                 ? "text-brand-green"
                                 : "text-brand-red"
                             }
                           `}
                         >
-                          {dados.efetividade.toFixed(
-                            2,
-                          )}
-                          %
+                          {dados.efetividade.toFixed(2)}%
                         </p>
                       </div>
                     </div>
@@ -476,14 +444,10 @@ export function CodificacaoModal({
             </div>
           </div>
 
-          {/* COLUNA 3 - CÓDIGOS */}
-
+          {/* COLUNA 3 - CÓDIGOS GERAIS */}
           <div className="space-y-4">
             <div>
-              <p className="text-lg font-semibold tracking-tight">
-                Códigos
-              </p>
-
+              <p className="text-lg font-semibold tracking-tight">Códigos</p>
               <p className="text-xs text-muted-foreground">
                 Distribuição dos códigos
               </p>
@@ -492,71 +456,77 @@ export function CodificacaoModal({
             <div
               className="
                 max-h-[500px]
-                space-y-3
+                space-y-2
                 overflow-y-auto
                 pr-2
               "
             >
-              {codigosOrdenados.map((codigo) => {
+              {codigosOrdenados.map((codigo: any) => {
                 const percentual =
                   maiorQuantidade > 0
-                    ? (valorCodigo(codigo) /
-                        maiorQuantidade) *
-                      100
+                    ? (valorCodigo(codigo) / maiorQuantidade) * 100
                     : 0;
+
+                const isForaPadrao = codigo.codigo_normal === false || codigo.codigo_normal === null;
 
                 return (
                   <div
                     key={codigo.codigo}
-                    className="
-                      grid
-                      grid-cols-[55px_1fr_55px]
-                      items-center
-                      gap-3
-                    "
+                    className="group relative flex items-center justify-between gap-2 rounded-md p-1 -ml-1 pr-2 transition-colors hover:bg-muted/20"
                   >
-                    <span
-                      className="
-                        text-sm
-                        font-semibold
-                        text-foreground
-                      "
-                    >
-                      {codigo.codigo}
-                    </span>
-
                     <div
                       className="
-                        h-3
-                        overflow-hidden
-                        rounded-full
-                        bg-muted/50
+                        grid
+                        flex-1
+                        grid-cols-[55px_1fr_55px]
+                        items-center
+                        gap-3
                       "
                     >
+                      <span
+                        className={`text-sm font-semibold ${
+                          isForaPadrao ? "text-amber-500" : "text-foreground"
+                        }`}
+                      >
+                        {codigo.codigo}
+                      </span>
+
                       <div
                         className="
-                          h-full
+                          h-3
+                          overflow-hidden
                           rounded-full
-                          bg-brand-green
-                          transition-all
+                          bg-muted/50
                         "
-                        style={{
-                          width: `${percentual}%`,
-                        }}
-                      />
+                      >
+                        <div
+                          className="
+                            h-full
+                            rounded-full
+                            bg-brand-green
+                            transition-all
+                          "
+                          style={{ width: `${percentual}%` }}
+                        />
+                      </div>
+
+                      <span className="text-right text-sm font-semibold">
+                        {nf.format(valorCodigo(codigo))}
+                      </span>
                     </div>
 
-                    <span
-                      className="
-                        text-right
-                        text-sm
-                        font-semibold
-                      "
+                    {/* BOTÃO COPIAR INDIVIDUAL MANTIDO */}
+                    <button
+                      className="opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 rounded p-1 text-muted-foreground shrink-0"
+                      title="Copiar código"
+                      onClick={() => {
+                        const fora = isForaPadrao ? " (Fora do padrão)" : "";
+                        navigator.clipboard.writeText(`${codigo.codigo} — ${valorCodigo(codigo)} ocorrências${fora}`);
+                        toast.success("Código copiado!");
+                      }}
                     >
-                      {nf.format(
-                        valorCodigo(codigo),
-                      )}
-                    </span>
+                      📋
+                    </button>
                   </div>
                 );
               })}
