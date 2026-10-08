@@ -12,19 +12,25 @@ export function AlertaCodificacao({
   tipo: "leitura" | "repescagem";
 }) {
   const {
+    mostrarAlerta,
     codigosForaDoPadrao,
-    // Não precisamos mais do "mostrarAlerta" nem do "reconhecer", 
-    // pois o botão será fixo com base na existência de códigos.
+    reconhecer,
   } = useAlertaCodificacao(tipo);
 
-  // A REGRA DE EXIBIÇÃO: Só esconde se a lista estiver vazia.
-  // Caso contrário, o botão fica fixado.
-  if (!codigosForaDoPadrao || codigosForaDoPadrao.length === 0) {
+  // O botão só aparece se houver alertas não reconhecidos E se existirem códigos na lista.
+  if (!mostrarAlerta || !codigosForaDoPadrao || codigosForaDoPadrao.length === 0) {
     return null;
   }
 
   return (
-    <Popover>
+    <Popover
+      onOpenChange={(open) => {
+        // Ao fechar a caixa de informação, dispara a função que oculta o botão
+        if (!open) {
+          reconhecer();
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           className="
